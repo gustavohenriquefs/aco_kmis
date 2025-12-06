@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 
+#include "../Report/report.cpp"
 #include "../bibliotecas/roaring.hh"
 
 class ACO {

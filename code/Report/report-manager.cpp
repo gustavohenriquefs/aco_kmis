@@ -52,7 +52,7 @@ class ReportManager {
 
  public:
   ReportManager() {
-    this->report_file_name = "result-" + std::to_string(this->get_results_size()) + ".csv";
+    this->report_file_name = "result-" + std::to_string(this->get_results_size() + 1) + ".csv";
   }
   
   ~ReportManager() = default;

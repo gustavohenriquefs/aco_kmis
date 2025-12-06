@@ -13,14 +13,44 @@
 
 #define get_current_time() std::chrono::high_resolution_clock::now()
 #define TIME_DIFF(start, end) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-typedef std::chrono::high_resolution_clock::time_point TimePoint;
+#define sz(v) (int)v.size()
 
+typedef std::chrono::high_resolution_clock::time_point TimePoint;
 typedef roaring::Roaring Subset;
 
-class ACOKMIS : public ACO {
- private:
-  std::vector<Subset> neighbors_R_;
+const float IMPRECISION = 0.00001;
 
+struct ACOKMISSolution {
+  std::set<int> solution_ids;
+  std::vector<Subset> connections;
+  roaring::Roaring solution;
+
+  ACOKMISSolution(std::vector<Subset>& connections) : connections(connections) {}
+
+  void add_item_idx(int idx) {
+    if (solution_ids.empty()) {
+      solution_ids.insert(idx);
+      solution = this->connections[idx];
+      return;
+    }
+    this->solution_ids.insert(idx);
+    this->solution = this->solution & this->connections[idx];
+  }
+
+  int size() const {
+    return sz(this->solution_ids);
+  }
+
+  bool exist(int idx) const {
+    return this->solution_ids.find(idx) != this->solution_ids.end();
+  }
+
+  bool empty() const {
+    return this->solution_ids.empty();
+  }
+};
+
+class ACOKMIS : public ACO {
  public:
   ACOKMIS(std::vector<Subset> connections,
           int numUsers,
@@ -31,7 +61,6 @@ class ACOKMIS : public ACO {
           double rho = 0.7,
           int iter_max = 50)
       : ACO(connections, numUsers, numIterations, alpha, beta, tau_0, rho, iter_max) {
-    neighbors_R_.resize(numUsers);
   }
 
   // Implementações
@@ -52,23 +81,77 @@ class ACOKMIS : public ACO {
     return intersec.cardinality();
   }
 
+  uint32_t get_next_element(std::vector<pair<float, int>>& j_prob) const {
+    int n = sz(j_prob);
+
+    std::vector<float> prob_acc(n + 1, 0);
+
+    for (int it = 1; it < n; it++) {
+      prob_acc[it] += j_prob[it].first + prob_acc[it - 1];
+    }
+
+    float x;
+
+#ifdef __linux__
+    x = drand48();  // Linux
+#elif _WIN32
+    x = (float)rand() / RAND_MAX;  // Windons
+#else
+#error "OS not supported!"
+#endif
+
+    float normalized_x = x * prob_acc[n - 1];
+
+    // TODO: verify what is better, use a IMPRECISION factor or just return the last alement
+    for (int it = 1; it < n; it++)
+      if (normalized_x <= prob_acc[it]) {
+        return j_prob[it].second;
+      }
+
+    return j_prob[n - 1].second;
+  }
+
+  int get_next_element_by_max_p(std::vector<ACOKMISSolution>& L, std::vector<std::vector<std::vector<float>>>& p, int u, int i) const {
+    int j_maxp = -1;
+
+    for (int j = 0; j < numUsers; j++)
+      if (!L[u].exist(j)) {
+        if (j_maxp == -1 || p[u][i][j] > p[u][i][j_maxp]) {
+          j_maxp = j;
+        }
+      }
+
+    return j_maxp;
+  }
+
+  int get_next_element_by_prob(std::vector<ACOKMISSolution>& L, std::vector<std::vector<std::vector<float>>>& p, int u, int i) const {
+    std::vector<pair<float, int>> p_u_j;
+
+    for (int j = 0; j < numUsers; j++)
+      if (!L[u].exist(j)) {
+        p_u_j.push_back({p[u][i][j], j});
+      }
+
+    return get_next_element(p_u_j);
+  }
+
   std::vector<ReportExecData> solve_kMIS(int k) override {
     vector<ReportExecData> reports;
 
     init_pheromone_matrix();
 
-    std::set<int> best;
+    ACOKMISSolution best(this->connections);
 
     int iter = 0;
 
-    std::vector<std::set<int>> L(numUsers, std::set<int>());  // soluções de cada formiga
+    std::vector<ACOKMISSolution> L(numUsers, ACOKMISSolution(this->connections));  // soluções de cada formiga
 
     auto start_time = get_current_time();
 
-    while (iter < iter_max_) {  // limite por tempo
+    while (60000 > TIME_DIFF(start_time, get_current_time())) {  // limite por tempo
       // inicia todas soluções u
       for (int u = 0; u < numUsers; u++) {
-        L[u].insert(u);
+        L[u].add_item_idx(u);
       }
 
       std::vector<std::vector<std::vector<float>>> p(numUsers, std::vector<std::vector<float>>(numUsers, std::vector<float>(numUsers, 0)));  // probabilidade de escolher cada nó
@@ -77,53 +160,51 @@ class ACOKMIS : public ACO {
         // Construir cada formiga u
         int i = u;
 
-        while ((int)L[u].size() < k) {
-          Subset intersec = connections[u];
-
-          for (int i : L[u])
-            if (i != u) {
-              intersec = intersec & this->connections[i];
-            }
-
+        while (sz(L[u]) < k) {
           // calcula pontuação gulosa
           std::vector<float> mu(numUsers);
 
           for (int j = 0; j < numUsers; j++)
-            if (L[u].count(j) == 0) {
-              int newAnsCard = connections[j].and_cardinality(intersec);
+            if (!L[u].exist(j)) {
+              int newAnsCard = connections[j].and_cardinality(L[u].solution);
 
-              mu[j] = (float)newAnsCard / intersec.cardinality();
+              mu[j] = (float)newAnsCard / L[u].solution.cardinality();
             }
 
           // calcula probabilidade
           float sum = 0;
           for (int j = 0; j < numUsers; j++)
-            if (L[u].count(j) == 0) {
+            if (!L[u].exist(j)) {
               p[u][i][j] = pow(pheromone_matrix_[i][j], this->alpha_) * pow(mu[j], this->beta_);
               sum += p[u][i][j];
             }
           for (int j = 0; j < numUsers; j++)
-            if (L[u].count(j) == 0) {
+            if (!L[u].exist(j)) {
               p[u][i][j] = p[u][i][j] / sum;
             }
 
           // adiciona j com maior probabilidade
-          // TODO: verificar se não é pra sortear
-          int j_maxp = -1;
+          // TODO: verificar se não é pra sortear (I create a function for bellow action)
+          // int j_maxp = -1;
 
-          for (int j = 0; j < numUsers; j++)
-            if (L[u].count(j) == 0) {
-              if (j_maxp == -1 || p[u][i][j] > p[u][i][j_maxp]) {
-                j_maxp = j;
-              }
-            }
+          // for (int j = 0; j < numUsers; j++)
+          //   if (!L[u].exist(j)) {
+          //     if (j_maxp == -1 || p[u][i][j] > p[u][i][j_maxp]) {
+          //       j_maxp = j;
+          //     }
+          //   }
 
-          L[u].insert(j_maxp);
-          i = j_maxp;
+          // L[u].add_item_idx(j_maxp);
+          // i = j_maxp;
+
+          // Alternative:
+          int next_element_idx = get_next_element_by_prob(L, p, u, i);
+          L[u].add_item_idx(next_element_idx);
+          i = next_element_idx;
         }
 
         // Substitui melhor solução, caso L[u] seja melhor
-        if (best.empty() || tamanho_intersec(L[u]) > tamanho_intersec(best)) {
+        if (best.empty() || L[u].solution.cardinality() > best.solution.cardinality()) {
           best = L[u];
         }
       }
@@ -132,9 +213,10 @@ class ACOKMIS : public ACO {
       std::vector<std::vector<int>> Q(numUsers, std::vector<int>(numUsers, 0));
 
       for (int u = 0; u < numUsers; u++) {
-        int Lu_card = tamanho_intersec(L[u]);
-        for (int i : L[u]) {
-          for (int j : L[u])
+        int Lu_card = L[u].solution.cardinality();
+
+        for (int i : L[u].solution_ids) {
+          for (int j : L[u].solution_ids)
             if (i != j) {
               delta[i][j] = delta[i][j] + Lu_card;
               Q[i][j]++;
@@ -142,7 +224,8 @@ class ACOKMIS : public ACO {
         }
       }
 
-      int best_card = tamanho_intersec(best);
+      int best_card = best.solution.cardinality();
+
       for (int i = 0; i < numUsers; i++) {
         for (int j = 0; j < numUsers; j++)
           if (i != j && Q[i][j] > 0) {
@@ -163,17 +246,17 @@ class ACOKMIS : public ACO {
 
       std::vector<Subset> bestvec;
 
-      for (int i : best) {
+      for (int i : best.solution_ids) {
         bestvec.push_back(connections[i]);
       }
 
-      reports.push_back(ReportExecData(best, elapsed_time));
+      reports.push_back(ReportExecData(best.solution_ids, elapsed_time));
 
       iter++;
     }
 
     std::cout << "[success]: ACOKMIS success runned!" << std::endl;
-    
+
     return reports;
   }
 

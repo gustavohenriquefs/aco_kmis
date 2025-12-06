@@ -38,11 +38,7 @@ struct Report {
                                                    k(k),
                                                    reports_data(reports_data) {
   }
-
-  // void add_data(std::set<int>& best, float duration) {
-  //   this->reports_data.push_back({best, duration});
-  // }
-
+  
   int get_ans(std::set<int>& ans_idx) {
     std::vector<Subset> ans;
 
