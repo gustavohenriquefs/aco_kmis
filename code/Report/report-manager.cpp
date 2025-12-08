@@ -51,7 +51,8 @@ class ReportManager {
   }
 
  public:
-  ReportManager() {
+  ReportManager(std::string algo) {
+    this->report_directory = "../Results/" + algo;
     this->report_file_name = "result-" + std::to_string(this->get_results_size() + 1) + ".csv";
   }
   

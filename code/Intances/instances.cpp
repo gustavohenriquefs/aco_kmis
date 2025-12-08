@@ -48,7 +48,7 @@ class IntancesReader {
   }
 
  public:
-  IntancesReader(vector<string> instance_folder_names = {"type1/"}) {
+  IntancesReader(vector<string> instance_folder_names = { "type1/", "type2/", "type3/" }) {
     read_instances(instance_folder_names);
   }
 

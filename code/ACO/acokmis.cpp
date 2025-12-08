@@ -212,7 +212,7 @@ class ACOKMIS : public ACO {
           // i = j_maxp;
 
           // Alternative:
-          int next_element_idx = get_next_element_by_prob(L, p, u, i);
+          int next_element_idx = get_next_element_by_max_p(L, p, u, i);
           L[u].add_item_idx(next_element_idx);
           i = next_element_idx;
         }

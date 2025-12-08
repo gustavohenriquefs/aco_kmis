@@ -19,6 +19,12 @@ class ACO {
       pheromone_matrix_;
 
  public:
+
+//  Os parâmetros utilizados no algoritmo ACO KMIS foram obtidos
+// também de forma empírica e são eles: α = 0.5, β = 2, τ0 = 1, ρ = 0.7 e IterMax = 50.
+// Vale destacar que, pelo fato dos algoritmos GRASP REATIVO e VNS REATIVO possuírem
+// componentes de aleatoriedade, estes algoritmos foram executados 10 vezes por instância, e a
+// solução e o tempo de execução considerados, foram obtidos através da média das 10 execuções.
   ACO(std::vector<roaring::Roaring> connections,
       int numUsers,
       int numIterations,
