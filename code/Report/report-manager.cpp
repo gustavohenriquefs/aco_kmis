@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include "../common.hpp"
 
 #include "./report.cpp"
 
@@ -67,7 +68,7 @@ class ReportManager {
   void save_reports_on_file(Report& new_report) {
     this->verify_or_create_path();
     
-    std::cout << "[log]: init save reports..." << endl;
+    cout << "[log]: init save reports..." << endl;
     
     std::ofstream report_file(this->get_fullpath(), std::ios_base::app | std::ios_base::out);
     

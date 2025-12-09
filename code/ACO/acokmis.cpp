@@ -260,7 +260,7 @@ class ACOKMIS : public ACO {
       iter++;
     }
 
-    std::cout << "[success]: ACOKMIS success runned!" << std::endl;
+    cout << "[success]: ACOKMIS success runned!" << endl;
 
     return reports;
   }

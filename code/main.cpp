@@ -5,9 +5,7 @@
 #include "ACO/acokmis.cpp"
 #include "GRASPTS/graspts.cpp"
 #include "Intances/instances.cpp"
-
-#define get_current_time() std::chrono::high_resolution_clock::now()
-#define TIME_DIFF(start, end) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+#include "common.hpp"
 
 // Function to process ACO for a given instance
 // @param instance The instance to process
@@ -42,37 +40,44 @@ InstanceI mapACOInstanceToGRASPTsInstance(const Instance& i) {
 }
 
 void processGRASPTs(const Instance& instance, ReportManager& report_manager) {
-  std::cout << "[DEBUG] Iniciando processGRASPTs..." << std::endl;
-  
   InstanceI i = mapACOInstanceToGRASPTsInstance(instance);
-  
+
   GRASPTs grasp = GRASPTs(i);
-  
+
   auto result = grasp.solve_kMIS();
 
-  std::cout << "[DEBUG] Resolver concluido!" << std::endl;
-  
   Report report_instance(instance.get_connections(),
                          instance.get_file_name(),
                          instance.get_k(),
                          result);
   report_manager.add_reports(report_instance);
-  std::cout << "[DEBUG] processGRASPTs concluido!" << std::endl;
 }
 
 int main() {
-  std::cout << "-----------------começou-----------------------" << std::endl;
+#ifndef DEBUG
+  std::ios::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+#endif
+
   IntancesReader reader = IntancesReader();
   const auto& instances = reader.get_instances();
-  std::cout << "-----------------leu instancia-----------------------" << std::endl;
 
-  ReportManager report_manager = ReportManager("graspts");
+  ReportManager report_manager_graspts = ReportManager("graspts");
 
   for (auto instance : instances) {
-    std::cout << "check instance: " << instance.get_file_name() << endl;
+    cout << "check instance: " << instance.get_file_name() << endl;
     for (int i = 0; i < 10; i++)
-      processGRASPTs(instance, report_manager);
+      processGRASPTs(instance, report_manager_graspts);
   }
 
-  std::cout << "-----------------acabou-----------------------" << std::endl;
+  cout << "-----------------acabou graspts-----------------------" << endl;
+
+  ReportManager report_manager_aco = ReportManager("aco_kmis");
+
+  for (auto instance : instances) {
+    cout << "check instance: " << instance.get_file_name() << endl;
+    for (int i = 0; i < 10; i++)
+      processACO(instance, report_manager_aco);
+  }
+  cout << "-----------------acabou-----------------------" << endl;
 }

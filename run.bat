@@ -1,26 +1,27 @@
 @echo off
 cd /d "%~dp0\code"
-echo Compilando biblioteca roaring...
-gcc -c -O2 -o bibliotecas/roaring.o bibliotecas/roaring.c
-if %ERRORLEVEL% neq 0 (
-    echo Erro na compilação da biblioteca roaring!
-    pause
-    exit /b 1
-)
-echo Compilando projeto principal...
-g++ -std=c++17 -O2 -pg -c -o main.o main.cpp
-if %ERRORLEVEL% neq 0 (
-    echo Erro na compilação do main.cpp!
-    pause
-    exit /b 1
-)
 
-echo Linkando projeto...
-g++ -o main.exe main.o bibliotecas/roaring.o -lpsapi
+echo ============================================
+echo   Compilando projeto
+echo ============================================
+echo.
+
+echo Compilando projeto...
+g++ -std=c++17 -O3 -fno-inline -o main.exe main.cpp bibliotecas/roaring.c -lpsapi
 if %ERRORLEVEL% equ 0 (
-    echo Compilação bem-sucedida! Executando...
+    echo [OK] Compilação bem-sucedida!
+    echo.
+    echo ============================================
+    echo   Executando programa
+    echo ============================================
+    echo.
     main.exe
+    echo.
+    echo ============================================
+    echo   Programa finalizado
+    echo ============================================
 ) else (
-    echo Erro na compilação!
+    echo [ERRO] Falha na compilação do projeto!
+    echo.
     pause
 )

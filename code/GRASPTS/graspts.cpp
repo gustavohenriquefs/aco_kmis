@@ -185,6 +185,17 @@ class GRASPTs {
     melhorSolucaoGlobal = Solucao(I.featuresF);
   }
 
+  // Verifica se o tempo limite foi alcançado (40 segundos) - para o TCC
+  bool time_limit_reached(TimePoint start_time) {
+    auto elapsed_time = TIME_DIFF(start_time, get_current_time());
+    return elapsed_time >= 40000.0f;  // Limite de 40000 ms (40 segundos)
+  }
+
+  // Verifica se o limite de iterações foi alcançado
+  bool iteration_limit_reached(int current_iteration) {
+    return current_iteration >= IterMax;
+  }
+
   /**
    * Método principal para executar o algoritmo GRASPTs.
    * Mapeia o Algoritmo 1: GRASP.
@@ -195,7 +206,7 @@ class GRASPTs {
     auto start_time = get_current_time();
 
     // Sb ← ∅ (passo 1, inicializado no construtor)
-    for (int i = 0; i < this->IterMax; ++i) {  // for i ∈ 1 . . . Δ do (passo 2)
+    for (int i = 0; !time_limit_reached(start_time); ++i) {  // for i ∈ 1 . . . Δ do (passo 2)
       // 3: S ← Construct(I, α)
       Solucao S_construida = construir_CRG(alphaRG);
 
