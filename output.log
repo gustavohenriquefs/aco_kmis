@@ -1,0 +1,22 @@
+nohup: ignoring input
+============================================
+  Compilando projeto
+============================================
+
+Compilando projeto...
+bibliotecas/roaring.c:16653:19: warning: inline function ‘int roaring::api::roaring_trailing_zeroes(long long unsigned int)’ used but never defined
+16653 | extern inline int roaring_trailing_zeroes(unsigned long long input_num);
+      |                   ^~~~~~~~~~~~~~~~~~~~~~~
+bibliotecas/roaring.c:16654:19: warning: inline function ‘int roaring::api::roaring_leading_zeroes(long long unsigned int)’ used but never defined
+16654 | extern inline int roaring_leading_zeroes(unsigned long long input_num);
+      |                   ^~~~~~~~~~~~~~~~~~~~~~
+[OK] Compilação bem-sucedida!
+
+============================================
+  Executando programa
+============================================
+
+
+============================================
+  Programa finalizado
+============================================
